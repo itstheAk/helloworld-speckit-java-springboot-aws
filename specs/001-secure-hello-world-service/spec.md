@@ -8,6 +8,16 @@
 
 **Input**: User description: "Build a Production Grade Java SpringBoot Hello World Service With Environments like Dev, UAT & PROD and Environment Configurations in Terraform for Consistency Use Kubernetes for Orchestration. Build the Service as Most Secure One."
 
+## Clarifications
+
+### Session 2026-10-25
+
+- Q: Should the greeting service be reachable from the public internet, or only from inside a private network? → A: Private in Dev and UAT (reachable only through a VPN); public in PROD.
+- Q: Should consumers have to prove who they are before they can get the greeting in PROD? → A: No authentication; anyone can request the greeting, and abuse is controlled by rate limits and the protective layer.
+- Q: Where should PROD run for availability: in one data-center zone, across several zones in one region, or across several regions? → A: Single zone.
+- Q: Which monthly availability target should PROD meet, given it runs in a single zone? → A: Keep 99.9%; a zone failure may cause the target to be missed, and that risk is accepted.
+- Q: How long must the service's logs and the audit records of who changed what be kept? → A: 30 days for logs, 90 days for audit records.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Consumers receive a greeting from a reliable service (Priority: P1)
@@ -114,6 +124,7 @@ version keeps serving.
 **Service behaviour**
 
 - **FR-001**: The service MUST return a greeting message ("Hello, World") on a successful request.
+- **FR-001a**: The greeting MUST be available to any consumer without authentication in every environment where the service is reachable; it MUST return no sensitive or consumer-specific data.
 - **FR-002**: The service MUST provide a health status that platform tooling can query without credentials and that reveals no internal details.
 - **FR-003**: The service MUST return clear, non-revealing error responses for unsupported requests, malformed input and internal failures.
 - **FR-004**: The service MUST limit request size and request rate so abusive traffic cannot degrade service for legitimate consumers.
@@ -128,15 +139,20 @@ version keeps serving.
 - **FR-010**: Changes to PROD MUST require explicit review and approval before being applied.
 - **FR-011**: Environment isolation MUST ensure that a fault or compromise in one environment cannot affect or reach another.
 
+- **FR-026**: Dev and UAT MUST be reachable only by authorized people and systems over a private network connection (VPN) and MUST NOT be reachable from the public internet; PROD MUST be reachable by the public.
+- **FR-027**: PROD's public access MUST pass through a managed protective layer that filters common web attacks and enforces request rate limits before traffic reaches the service.
+
 **Orchestration and operations**
 
 - **FR-012**: The service MUST be run under container orchestration that keeps multiple instances running, restarts failed instances and replaces unhealthy ones automatically.
+- **FR-012a**: Every environment, including PROD, MUST run within a single availability zone of a single region; the system is not required to survive the loss of that zone.
 - **FR-013**: New versions MUST be rolled out without downtime and MUST be revertible to the previous version quickly.
 - **FR-014**: The service MUST be able to scale its capacity with demand within defined limits per environment.
 - **FR-015**: The service MUST emit structured, timestamped logs of requests and security-relevant events, excluding secrets and personal data.
 
 **Security**
 
+- **FR-015a**: Service logs MUST be retained for 30 days and audit records of access and changes (FR-024) for 90 days, then deleted; they MUST be protected from alteration while retained.
 - **FR-016**: All traffic to and between components MUST be encrypted in transit using current, secure protocol versions; unencrypted access MUST NOT be served.
 - **FR-017**: The service MUST run with least privilege: as a non-privileged user, with a read-only file system, no unnecessary capabilities, and no ability to escalate privileges.
 - **FR-018**: Network access to and from the service MUST be denied by default, with only required connections explicitly allowed.
@@ -160,7 +176,7 @@ version keeps serving.
 
 ### Measurable Outcomes
 
-- **SC-001**: 99.9% of greeting requests in PROD succeed over any calendar month.
+- **SC-001**: 99.9% of greeting requests in PROD succeed over any calendar month. Because PROD runs in a single zone (FR-012a), the loss of that zone may cause this target to be missed; this risk is accepted.
 - **SC-002**: 95% of greeting requests receive a response in under 1 second under normal load, in every environment.
 - **SC-003**: A new environment can be created from the shared definition in under 60 minutes with no manual steps.
 - **SC-004**: 100% of deployments to UAT and PROD use a release that was already deployed unchanged in the previous environment.
@@ -172,11 +188,12 @@ version keeps serving.
 
 ## Assumptions
 
-- The service is intentionally minimal: a single public greeting and a health status. It performs no user authentication or data storage in this version; adding authentication for the greeting is out of scope.
+- The service is intentionally minimal: a single public greeting and a health status. It performs no user authentication or data storage in this version (confirmed in clarification); adding authentication for the greeting is out of scope.
 - Dev, UAT and PROD are the only environments in scope; their detailed sizing and scaling limits will be chosen during planning, with PROD sized largest.
 - The delivery constraints stated in the request apply: Terraform for environment definitions, Kubernetes for orchestration, and a Java Spring Boot service, hosted on AWS as established by the project constitution. The specific AWS services and tooling are decided during planning.
 - "Most secure" is interpreted as meeting widely accepted industry hardening practice (for example the OWASP and CIS guidance for services and containers), not as an absolute guarantee.
 - Dev may have relaxed capacity and availability targets compared to UAT and PROD, but security controls are identical in all three.
 - A managed secret store and an artifact repository are available in the target cloud account.
 - The availability, performance and rollback targets in the success criteria apply to PROD unless noted, with UAT and Dev held to the same security criteria.
-- Public DNS names and TLS certificates for each environment will be available, with their ownership confirmed during planning.
+- A public DNS name and TLS certificate are needed for PROD; Dev and UAT use private names and certificates, reached via the private network connection. Ownership of the names is confirmed during planning.
+- A private network connection (VPN) and the people or systems allowed to use it are provided for Dev and UAT access.
