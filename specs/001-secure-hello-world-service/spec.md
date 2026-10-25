@@ -13,15 +13,16 @@
 ### Session 2026-10-25
 
 - Q: Should the greeting service be reachable from the public internet, or only from inside a private network? → A: Private in Dev and UAT (reachable only through a VPN); public in PROD.
-- Q: Should consumers have to prove who they are before they can get the greeting in PROD? → A: No authentication; anyone can request the greeting, and abuse is controlled by rate limits and the protective layer.
-- Q: Where should PROD run for availability: in one data-center zone, across several zones in one region, or across several regions? → A: Single zone.
-- Q: Which monthly availability target should PROD meet, given it runs in a single zone? → A: Keep 99.9%; a zone failure may cause the target to be missed, and that risk is accepted.
+- Q: Should consumers have to prove who they are before they can get the greeting in PROD? → A: Yes, each consumer must present an API key issued and revocable by operators (revised from "no authentication" to strengthen security).
+- Q: Where should PROD run for availability: in one data-center zone, across several zones in one region, or across several regions? → A: Multiple zones in one region (revised from "single zone" to strengthen availability).
+- Q: Which monthly availability target should PROD meet, given it runs in a single zone? → A: Keep 99.9%; with multiple zones (revised) the target is achievable without accepting zone-failure risk.
 - Q: How long must the service's logs and the audit records of who changed what be kept? → A: 30 days for logs, 90 days for audit records.
-- Q: Who must approve a change before it is applied to PROD? → A: Any one reviewer, including the author.
+- Q: Who must approve a change before it is applied to PROD? → A: At least one authorized reviewer who is not the author (revised from "any one reviewer, including the author" to strengthen security).
 - Q: Must the service meet any formal compliance standard, such as PCI DSS or ISO 27001? → A: None.
-- Q: Who is responsible for arranging the independent security assessment before the first PROD release, and when must it be done? → A: No independent assessment is required (SC-009 removed); the automated scanning and checks in the spec provide the assurance.
+- Q: Who is responsible for arranging the independent security assessment before the first PROD release, and when must it be done? → A: An independent security assessment is required before every PROD release (revised from "not required" to strengthen security); SC-009 restored.
 - Q: Should Dev and UAT run smaller than PROD, or the same size? → A: Dev minimal; UAT and PROD the same size.
 - Q: When a vulnerability is found in a release already running in PROD, how quickly must a fix be deployed? → A: Critical within 24 hours; high within 7 days.
+- Q: Now that every PROD release needs an independent assessment, how are urgent critical fixes handled? → A: Expedited independent assessment completed within the 24-hour window.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -39,7 +40,8 @@ response with the expected message; request the health status and confirm it rep
 
 **Acceptance Scenarios**:
 
-1. **Given** the service is running, **When** a consumer requests the greeting, **Then** they receive a successful response containing the greeting message.
+1. **Given** the service is running, **When** a consumer with a valid API key requests the greeting, **Then** they receive a successful response containing the greeting message.
+   - **Given** a request with a missing, invalid or revoked API key, **When** it is processed, **Then** it is rejected with a non-revealing error and no greeting.
 2. **Given** the service is running, **When** the platform checks service health, **Then** it receives a healthy status without needing credentials and without exposing internal details.
 3. **Given** a consumer requests a path or method the service does not support, **When** the request is processed, **Then** they receive a clear error response that reveals no internal information.
 
@@ -129,7 +131,8 @@ version keeps serving.
 **Service behaviour**
 
 - **FR-001**: The service MUST return a greeting message ("Hello, World") on a successful request.
-- **FR-001a**: The greeting MUST be available to any consumer without authentication in every environment where the service is reachable; it MUST return no sensitive or consumer-specific data.
+- **FR-001a**: The greeting MUST be served only to consumers presenting a valid API key, in every environment where the service is reachable; requests with a missing, invalid or revoked key MUST be rejected with a non-revealing error. The greeting itself MUST contain no sensitive or consumer-specific data.
+- **FR-001b**: Operators MUST be able to issue, rotate and revoke an API key per consumer, with revocation taking effect within 5 minutes; keys MUST NOT be stored or logged in readable form, and each consumer's request rate MUST be limited independently.
 - **FR-002**: The service MUST provide a health status that platform tooling can query without credentials and that reveals no internal details.
 - **FR-003**: The service MUST return clear, non-revealing error responses for unsupported requests, malformed input and internal failures.
 - **FR-004**: The service MUST limit request size and request rate so abusive traffic cannot degrade service for legitimate consumers.
@@ -142,7 +145,7 @@ version keeps serving.
 - **FR-007a**: UAT MUST be provisioned at the same capacity and scaling limits as PROD so that test results represent PROD behavior; Dev MAY run at a minimal capacity.
 - **FR-008**: The same unmodified, versioned release MUST be what is deployed in Dev, UAT and PROD.
 - **FR-009**: The system MUST detect and report any difference between an environment's actual state and its defined state.
-- **FR-010**: Changes to PROD MUST require explicit approval from at least one authorized reviewer, who MAY be the change's author, before being applied; the approver and time of every approval MUST be recorded.
+- **FR-010**: Changes to PROD MUST require explicit approval from at least one authorized reviewer who is NOT the change's author before being applied, and a change MUST NOT be applied on its author's approval alone; the approver and time of every approval MUST be recorded.
 - **FR-011**: Environment isolation MUST ensure that a fault or compromise in one environment cannot affect or reach another.
 
 - **FR-026**: Dev and UAT MUST be reachable only by authorized people and systems over a private network connection (VPN) and MUST NOT be reachable from the public internet; PROD MUST be reachable by the public.
@@ -151,7 +154,7 @@ version keeps serving.
 **Orchestration and operations**
 
 - **FR-012**: The service MUST be run under container orchestration that keeps multiple instances running, restarts failed instances and replaces unhealthy ones automatically.
-- **FR-012a**: Every environment, including PROD, MUST run within a single availability zone of a single region; the system is not required to survive the loss of that zone.
+- **FR-012a**: PROD and UAT MUST run spread across multiple availability zones of a single region and MUST continue serving consumers when any one zone is lost; Dev MAY run in a single zone.
 - **FR-013**: New versions MUST be rolled out without downtime and MUST be revertible to the previous version quickly.
 - **FR-014**: The service MUST be able to scale its capacity with demand within defined limits per environment.
 - **FR-015**: The service MUST emit structured, timestamped logs of requests and security-relevant events, excluding secrets and personal data.
@@ -164,7 +167,7 @@ version keeps serving.
 - **FR-018**: Network access to and from the service MUST be denied by default, with only required connections explicitly allowed.
 - **FR-019**: Secrets and credentials MUST NOT appear in source code, releases, logs or environment definitions; they MUST be supplied at run time from a managed secret store.
 - **FR-020**: Every release MUST be scanned for known vulnerabilities in the service and its dependencies, and releases with unresolved high or critical findings MUST be blocked from deployment.
-- **FR-020a**: A newly disclosed vulnerability in a release already running MUST be detected and reported, and a fix MUST be deployed within 24 hours for critical findings and within 7 days for high findings.
+- **FR-020a**: A newly disclosed vulnerability in a release already running MUST be detected and reported, and a fix MUST be deployed within 24 hours for critical findings and within 7 days for high findings. For critical fixes, the independent security assessment required by SC-009 MUST be performed on an expedited basis so that it completes within the 24-hour window.
 - **FR-021**: Releases MUST be verifiable as produced by the trusted build process, and only verified releases MUST be deployable.
 - **FR-022**: The release MUST be built from a minimal base so that unneeded components are not present.
 - **FR-023**: Responses MUST include standard protective security headers and MUST NOT disclose technology or version details.
@@ -183,7 +186,7 @@ version keeps serving.
 
 ### Measurable Outcomes
 
-- **SC-001**: 99.9% of greeting requests in PROD succeed over any calendar month. Because PROD runs in a single zone (FR-012a), the loss of that zone may cause this target to be missed; this risk is accepted.
+- **SC-001**: 99.9% of greeting requests in PROD succeed over any calendar month. PROD runs across multiple zones (FR-012a), so the loss of one zone must not cause this target to be missed.
 - **SC-002**: 95% of greeting requests receive a response in under 1 second under normal load, in every environment.
 - **SC-003**: A new environment can be created from the shared definition in under 60 minutes with no manual steps.
 - **SC-004**: 100% of deployments to UAT and PROD use a release that was already deployed unchanged in the previous environment.
@@ -191,10 +194,11 @@ version keeps serving.
 - **SC-006**: 100% of external connections to every environment are encrypted, and 0 secrets are found in the repository or releases by automated checks.
 - **SC-007**: Any environment drift from its defined state is reported within 24 hours.
 - **SC-008**: A new version is rolled out with no failed consumer requests attributable to the rollout, and a faulty version can be reverted within 10 minutes.
+- **SC-009**: Every release deployed to PROD has passed an independent security assessment that found no unresolved high or critical issues.
 
 ## Assumptions
 
-- The service is intentionally minimal: a single public greeting and a health status. It performs no user authentication or data storage in this version (confirmed in clarification); adding authentication for the greeting is out of scope.
+- The service is intentionally minimal: a greeting protected by per-consumer API keys, and a health status. It stores no consumer data beyond what API key management needs; end-user (identity provider) authentication is out of scope.
 - Dev, UAT and PROD are the only environments in scope; their detailed sizing and scaling limits will be chosen during planning, with Dev minimal and UAT sized the same as PROD.
 - The delivery constraints stated in the request apply: Terraform for environment definitions, Kubernetes for orchestration, and a Java Spring Boot service, hosted on AWS as established by the project constitution. The specific AWS services and tooling are decided during planning.
 - "Most secure" is interpreted as meeting widely accepted industry hardening practice (for example the OWASP and CIS guidance for services and containers), not as an absolute guarantee. No formal compliance standard (such as PCI DSS or ISO 27001) applies (confirmed in clarification).
