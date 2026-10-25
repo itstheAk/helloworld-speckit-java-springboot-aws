@@ -1,0 +1,129 @@
+# Spec-driven development gates: a thorough analysis before, and an alignment review after,
+# every SDD stage. Each hook commits and pushes (see .claude/skills/speckit-sdd-before and -after).
+hooks:
+  before_constitution:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: constitution (before)"
+  before_specify:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: specify (before)"
+  before_clarify:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: clarify (before)"
+  before_checklist:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: checklist (before)"
+  before_plan:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: plan (before)"
+  before_tasks:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: tasks (before)"
+  before_analyze:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: analyze (before)"
+  before_implement:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: implement (before)"
+  before_converge:
+    - extension: sdd-gates
+      command: speckit.sdd.before
+      enabled: true
+      optional: false
+      description: Thorough analysis of everything done so far, then commit and push
+      prompt: "Stage: converge (before)"
+  after_constitution:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: constitution (after)"
+  after_specify:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: specify (after)"
+  after_clarify:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: clarify (after)"
+  after_checklist:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: checklist (after)"
+  after_plan:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: plan (after)"
+  after_tasks:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: tasks (after)"
+  after_analyze:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: analyze (after)"
+  after_implement:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: implement (after)"
+  after_converge:
+    - extension: sdd-gates
+      command: speckit.sdd.after
+      enabled: true
+      optional: false
+      description: Review alignment of the result with what was asked, then commit and push
+      prompt: "Stage: converge (after)"
