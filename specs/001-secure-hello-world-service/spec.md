@@ -23,6 +23,11 @@
 - Q: Should Dev and UAT run smaller than PROD, or the same size? → A: Dev minimal; UAT and PROD the same size.
 - Q: When a vulnerability is found in a release already running in PROD, how quickly must a fix be deployed? → A: Critical within 24 hours; high within 7 days.
 - Q: Now that every PROD release needs an independent assessment, how are urgent critical fixes handled? → A: Expedited independent assessment completed within the 24-hour window.
+- Q: How often must a consumer's API key be replaced, and how long can it stay valid? → A: Keys expire after 30 days; a new key can be active alongside the old one during rotation.
+- Q: How many consumers and how many requests per second should PROD be designed to handle? → A: Up to 50 consumers; 100 requests per second in total; 10 per second per consumer.
+- Q: Who may perform the independent security assessment required before every PROD release? → A: Any reviewer other than the release's authors.
+- Q: How do consumers get their first API key, and who approves their access? → A: Self-service: consumers register themselves and get a key automatically.
+- Q: What must a person or system do to register for a key, so that registration isn't open to everyone? → A: A verified email address is required, and total registered consumers are capped at 50.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -132,7 +137,9 @@ version keeps serving.
 
 - **FR-001**: The service MUST return a greeting message ("Hello, World") on a successful request.
 - **FR-001a**: The greeting MUST be served only to consumers presenting a valid API key, in every environment where the service is reachable; requests with a missing, invalid or revoked key MUST be rejected with a non-revealing error. The greeting itself MUST contain no sensitive or consumer-specific data.
-- **FR-001b**: Operators MUST be able to issue, rotate and revoke an API key per consumer, with revocation taking effect within 5 minutes; keys MUST NOT be stored or logged in readable form, and each consumer's request rate MUST be limited independently.
+- **FR-001b**: Every API key MUST expire 30 days after issue; a consumer MUST be able to hold a new key and the old key at the same time during a rotation overlap, after which the old key MUST stop working at its expiry; expired keys MUST be rejected like invalid keys.
+- **FR-001c**: Registration MUST require a verified email address, one registration per verified address, and MUST stop accepting new consumers once 50 are registered (further requests receive a clear "capacity reached" response); registration requests MUST themselves be rate limited and MUST NOT reveal whether an email address is already registered.
+- **FR-001d**: Consumers MUST be able to register themselves and obtain an API key without operator involvement, and to rotate their own key; operators MUST be able to view, rotate and revoke any consumer's key, with revocation taking effect within 5 minutes; keys MUST NOT be stored or logged in readable form, and each consumer's request rate MUST be limited independently.
 - **FR-002**: The service MUST provide a health status that platform tooling can query without credentials and that reveals no internal details.
 - **FR-003**: The service MUST return clear, non-revealing error responses for unsupported requests, malformed input and internal failures.
 - **FR-004**: The service MUST limit request size and request rate so abusive traffic cannot degrade service for legitimate consumers.
@@ -156,7 +163,8 @@ version keeps serving.
 - **FR-012**: The service MUST be run under container orchestration that keeps multiple instances running, restarts failed instances and replaces unhealthy ones automatically.
 - **FR-012a**: PROD and UAT MUST run spread across multiple availability zones of a single region and MUST continue serving consumers when any one zone is lost; Dev MAY run in a single zone.
 - **FR-013**: New versions MUST be rolled out without downtime and MUST be revertible to the previous version quickly.
-- **FR-014**: The service MUST be able to scale its capacity with demand within defined limits per environment.
+- **FR-014**: PROD (and UAT, which matches it) MUST be designed for up to 50 consumers and 100 requests per second in total, with each consumer limited to 10 requests per second; requests above a consumer's limit MUST be rejected with a clear rate-limit response while other consumers continue to be served.
+- **FR-014a**: The service MUST be able to scale its capacity with demand within defined limits per environment.
 - **FR-015**: The service MUST emit structured, timestamped logs of requests and security-relevant events, excluding secrets and personal data.
 
 **Security**
@@ -181,6 +189,8 @@ version keeps serving.
 - **Environment Definition**: The shared, version-controlled description of an environment's infrastructure and configuration, plus the per-environment settings that differ.
 - **Security Policy**: The rules governing encryption, network access, permissions, secrets, and release scanning and verification that apply to every environment.
 - **Greeting**: The message returned to a consumer.
+- **Consumer**: A person or system registered with a verified email address (at most 50) that is allowed to request the greeting; has its own request-rate limit.
+- **API Key**: A credential issued to one consumer, valid for 30 days, that can be rotated with an overlap period or revoked; never stored or logged in readable form.
 
 ## Success Criteria *(mandatory)*
 
@@ -194,7 +204,7 @@ version keeps serving.
 - **SC-006**: 100% of external connections to every environment are encrypted, and 0 secrets are found in the repository or releases by automated checks.
 - **SC-007**: Any environment drift from its defined state is reported within 24 hours.
 - **SC-008**: A new version is rolled out with no failed consumer requests attributable to the rollout, and a faulty version can be reverted within 10 minutes.
-- **SC-009**: Every release deployed to PROD has passed an independent security assessment that found no unresolved high or critical issues.
+- **SC-009**: Every release deployed to PROD has passed a security assessment, performed by a reviewer who is not one of that release's authors, that found no unresolved high or critical issues.
 
 ## Assumptions
 
