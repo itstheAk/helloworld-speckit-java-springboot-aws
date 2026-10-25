@@ -17,6 +17,11 @@
 - Q: Where should PROD run for availability: in one data-center zone, across several zones in one region, or across several regions? → A: Single zone.
 - Q: Which monthly availability target should PROD meet, given it runs in a single zone? → A: Keep 99.9%; a zone failure may cause the target to be missed, and that risk is accepted.
 - Q: How long must the service's logs and the audit records of who changed what be kept? → A: 30 days for logs, 90 days for audit records.
+- Q: Who must approve a change before it is applied to PROD? → A: Any one reviewer, including the author.
+- Q: Must the service meet any formal compliance standard, such as PCI DSS or ISO 27001? → A: None.
+- Q: Who is responsible for arranging the independent security assessment before the first PROD release, and when must it be done? → A: No independent assessment is required (SC-009 removed); the automated scanning and checks in the spec provide the assurance.
+- Q: Should Dev and UAT run smaller than PROD, or the same size? → A: Dev minimal; UAT and PROD the same size.
+- Q: When a vulnerability is found in a release already running in PROD, how quickly must a fix be deployed? → A: Critical within 24 hours; high within 7 days.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -134,9 +139,10 @@ version keeps serving.
 - **FR-005**: The system MUST support three isolated environments: Dev, UAT and PROD.
 - **FR-006**: All environment infrastructure and configuration MUST be defined as version-controlled code, and no environment MUST depend on manual changes to function.
 - **FR-007**: The environments MUST share a single common definition, differing only through explicitly declared per-environment settings.
+- **FR-007a**: UAT MUST be provisioned at the same capacity and scaling limits as PROD so that test results represent PROD behavior; Dev MAY run at a minimal capacity.
 - **FR-008**: The same unmodified, versioned release MUST be what is deployed in Dev, UAT and PROD.
 - **FR-009**: The system MUST detect and report any difference between an environment's actual state and its defined state.
-- **FR-010**: Changes to PROD MUST require explicit review and approval before being applied.
+- **FR-010**: Changes to PROD MUST require explicit approval from at least one authorized reviewer, who MAY be the change's author, before being applied; the approver and time of every approval MUST be recorded.
 - **FR-011**: Environment isolation MUST ensure that a fault or compromise in one environment cannot affect or reach another.
 
 - **FR-026**: Dev and UAT MUST be reachable only by authorized people and systems over a private network connection (VPN) and MUST NOT be reachable from the public internet; PROD MUST be reachable by the public.
@@ -158,6 +164,7 @@ version keeps serving.
 - **FR-018**: Network access to and from the service MUST be denied by default, with only required connections explicitly allowed.
 - **FR-019**: Secrets and credentials MUST NOT appear in source code, releases, logs or environment definitions; they MUST be supplied at run time from a managed secret store.
 - **FR-020**: Every release MUST be scanned for known vulnerabilities in the service and its dependencies, and releases with unresolved high or critical findings MUST be blocked from deployment.
+- **FR-020a**: A newly disclosed vulnerability in a release already running MUST be detected and reported, and a fix MUST be deployed within 24 hours for critical findings and within 7 days for high findings.
 - **FR-021**: Releases MUST be verifiable as produced by the trusted build process, and only verified releases MUST be deployable.
 - **FR-022**: The release MUST be built from a minimal base so that unneeded components are not present.
 - **FR-023**: Responses MUST include standard protective security headers and MUST NOT disclose technology or version details.
@@ -184,14 +191,13 @@ version keeps serving.
 - **SC-006**: 100% of external connections to every environment are encrypted, and 0 secrets are found in the repository or releases by automated checks.
 - **SC-007**: Any environment drift from its defined state is reported within 24 hours.
 - **SC-008**: A new version is rolled out with no failed consumer requests attributable to the rollout, and a faulty version can be reverted within 10 minutes.
-- **SC-009**: An independent security assessment of a PROD-bound release finds no high or critical issues.
 
 ## Assumptions
 
 - The service is intentionally minimal: a single public greeting and a health status. It performs no user authentication or data storage in this version (confirmed in clarification); adding authentication for the greeting is out of scope.
-- Dev, UAT and PROD are the only environments in scope; their detailed sizing and scaling limits will be chosen during planning, with PROD sized largest.
+- Dev, UAT and PROD are the only environments in scope; their detailed sizing and scaling limits will be chosen during planning, with Dev minimal and UAT sized the same as PROD.
 - The delivery constraints stated in the request apply: Terraform for environment definitions, Kubernetes for orchestration, and a Java Spring Boot service, hosted on AWS as established by the project constitution. The specific AWS services and tooling are decided during planning.
-- "Most secure" is interpreted as meeting widely accepted industry hardening practice (for example the OWASP and CIS guidance for services and containers), not as an absolute guarantee.
+- "Most secure" is interpreted as meeting widely accepted industry hardening practice (for example the OWASP and CIS guidance for services and containers), not as an absolute guarantee. No formal compliance standard (such as PCI DSS or ISO 27001) applies (confirmed in clarification).
 - Dev may have relaxed capacity and availability targets compared to UAT and PROD, but security controls are identical in all three.
 - A managed secret store and an artifact repository are available in the target cloud account.
 - The availability, performance and rollback targets in the success criteria apply to PROD unless noted, with UAT and Dev held to the same security criteria.
