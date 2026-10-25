@@ -1,50 +1,67 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# helloworld-speckit-java-springboot-aws Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Simplicity First (YAGNI)
+This project is a Hello World service. Every addition MUST be justified by a requirement in the
+current spec. Speculative features, extra layers, and unused dependencies MUST NOT be added.
+Any complexity beyond a single Spring Boot module MUST be recorded in the plan's Complexity
+Tracking section with the simpler alternative that was rejected.
+Rationale: the project exists to demonstrate the Speckit workflow end to end; scope creep hides
+that signal.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Spec-Driven Development
+Work MUST follow the Speckit sequence: constitution → specify → plan → tasks → implement.
+Code MUST trace to a task in `tasks.md`, and each task to a requirement in `spec.md`. When
+implementation reveals that a spec or plan is wrong, the artifact MUST be amended before the code
+diverges from it.
+Rationale: traceability from requirement to code is the point of using Speckit.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Test-First (NON-NEGOTIABLE)
+Tests MUST be written before implementation and MUST be observed failing before the code that
+satisfies them is written (Red-Green-Refactor). The greeting endpoint MUST have at least one
+automated test at the HTTP level (e.g., Spring `MockMvc`/`WebTestClient` or
+`@SpringBootTest`) asserting status and response body. The test suite MUST pass before any merge.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Twelve-Factor Spring Boot Service
+The service MUST be a Spring Boot application on a current LTS Java release, built with a single
+build tool (Maven or Gradle, chosen in the plan). Configuration MUST come from the environment or
+Spring profiles, never hard-coded. Logs MUST go to stdout/stderr. The service MUST expose a
+health endpoint (Spring Boot Actuator `/actuator/health`) for use by AWS health checks, and MUST
+shut down gracefully on SIGTERM.
+Rationale: these properties make the service deployable on any AWS compute target unchanged.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Reproducible AWS Deployment
+The deployable artifact MUST be built by an automated, repeatable command and MUST be identical
+across environments. All AWS resources MUST be defined as code (e.g., CloudFormation, CDK, or
+Terraform, chosen in the plan); manual console changes MUST NOT be the source of truth. Secrets
+and credentials MUST NOT be committed to the repository; the service MUST use IAM roles or AWS
+managed secret stores.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technology & Deployment Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- Language/framework: Java and Spring Boot (versions pinned in the build file).
+- Target platform: AWS. The specific compute service is decided in `/speckit-plan`.
+- Dependencies MUST be limited to what the current spec requires; each new dependency MUST be
+  justified in the plan or PR description.
+- The repository MUST contain a README documenting how to build, test, run locally, and deploy.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Workflow & Quality Gates
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- Work happens on feature branches created through the Speckit feature workflow; `main` MUST
+  stay releasable.
+- A change MAY merge only when: the build succeeds, all tests pass, and the change is traceable
+  to a spec requirement and task.
+- Each PR MUST include a check against this constitution; violations MUST be fixed or justified
+  in the plan's Complexity Tracking section.
+- Commits SHOULD be small and reference the task they complete.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes other project practices. Amendments MUST be made through
+`/speckit-constitution`, include a rationale, and update the version below. Versioning follows
+semantic versioning: MAJOR for backward-incompatible principle removals or redefinitions, MINOR
+for added principles/sections or materially expanded guidance, PATCH for clarifications and
+wording. Compliance MUST be reviewed at plan time (Constitution Check) and at PR review.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-25
