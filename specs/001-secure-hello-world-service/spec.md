@@ -24,10 +24,15 @@
 - Q: When a vulnerability is found in a release already running in PROD, how quickly must a fix be deployed? → A: Critical within 24 hours; high within 7 days.
 - Q: Now that every PROD release needs an independent assessment, how are urgent critical fixes handled? → A: Expedited independent assessment completed within the 24-hour window.
 - Q: How often must a consumer's API key be replaced, and how long can it stay valid? → A: Keys expire after 30 days; a new key can be active alongside the old one during rotation.
-- Q: How many consumers and how many requests per second should PROD be designed to handle? → A: Up to 50 consumers; 100 requests per second in total; 10 per second per consumer.
+- Q: How many consumers and how many requests per second should PROD be designed to handle? → A: Up to 50 consumers; 100 requests per second in total; 2 per second per consumer (revised from 10).
 - Q: Who may perform the independent security assessment required before every PROD release? → A: Any reviewer other than the release's authors.
 - Q: How do consumers get their first API key, and who approves their access? → A: Self-service: consumers register themselves and get a key automatically.
 - Q: What must a person or system do to register for a key, so that registration isn't open to everyone? → A: A verified email address is required, and total registered consumers are capped at 50.
+- Q: How should email addresses collected at registration be handled: how long are they kept, and what happens when a consumer asks to be removed? → A: Kept until the consumer asks to be removed; the email and key are deleted within 30 days of the request.
+- Q: What should happen when the 50 registration slots are all used and a new consumer needs access? → A: New consumers join a waiting list, and operators approve them as slots free up.
+- Q: How should the 100 requests-per-second total relate to the 10-per-second-per-consumer limit? → A: Lower the per-consumer limit to 2 requests per second so that 50 consumers fit within the 100 total (supersedes the earlier 10 per second).
+- Q: How will new consumers receive the verification email, and which party is responsible for sending it? → A: A managed cloud email-sending service; the verification link expires after 1 hour.
+- Q: Should someone who has just registered be able to use the service while their email is still unverified, or only after verification? → A: No key is issued until the verification link is used.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -138,8 +143,10 @@ version keeps serving.
 - **FR-001**: The service MUST return a greeting message ("Hello, World") on a successful request.
 - **FR-001a**: The greeting MUST be served only to consumers presenting a valid API key, in every environment where the service is reachable; requests with a missing, invalid or revoked key MUST be rejected with a non-revealing error. The greeting itself MUST contain no sensitive or consumer-specific data.
 - **FR-001b**: Every API key MUST expire 30 days after issue; a consumer MUST be able to hold a new key and the old key at the same time during a rotation overlap, after which the old key MUST stop working at its expiry; expired keys MUST be rejected like invalid keys.
-- **FR-001c**: Registration MUST require a verified email address, one registration per verified address, and MUST stop accepting new consumers once 50 are registered (further requests receive a clear "capacity reached" response); registration requests MUST themselves be rate limited and MUST NOT reveal whether an email address is already registered.
-- **FR-001d**: Consumers MUST be able to register themselves and obtain an API key without operator involvement, and to rotate their own key; operators MUST be able to view, rotate and revoke any consumer's key, with revocation taking effect within 5 minutes; keys MUST NOT be stored or logged in readable form, and each consumer's request rate MUST be limited independently.
+- **FR-001c**: Registration MUST require a verified email address, one registration per verified address, and, once 50 consumers are registered, new verified requests MUST be placed on a waiting list instead of receiving a key, and operators MUST be able to view the list, approve waiting consumers as slots free up, remove any registered consumer (recorded in the audit log) and remove waiting entries; registration requests MUST themselves be rate limited and MUST NOT reveal whether an email address is already registered.
+- **FR-001d**: A consumer's email address MUST be kept only for as long as the consumer is registered and MUST be used only for registration and key-related notices; a consumer MUST be able to ask to be removed, and within 30 days of the request the consumer's email address and keys MUST be deleted (freeing a registration slot). Email addresses MUST be protected from unauthorized access and MUST NOT appear in logs in readable form.
+- **FR-001e**: Verification emails MUST be sent through a managed email-sending service from a verified sender address; each verification link MUST expire 1 hour after it is sent, MUST work only once, and an expired or used link MUST be rejected with a non-revealing message; if the email service is unavailable, registration MUST fail safely with a clear "try again later" response and MUST NOT issue a key.
+- **FR-001f**: Consumers MUST be able to register themselves and obtain an API key without operator involvement, only after their email verification link has been used (no key of any kind is issued or usable before verification), and to rotate their own key; operators MUST be able to view, rotate and revoke any consumer's key, with revocation taking effect within 5 minutes; keys MUST NOT be stored or logged in readable form, and each consumer's request rate MUST be limited independently.
 - **FR-002**: The service MUST provide a health status that platform tooling can query without credentials and that reveals no internal details.
 - **FR-003**: The service MUST return clear, non-revealing error responses for unsupported requests, malformed input and internal failures.
 - **FR-004**: The service MUST limit request size and request rate so abusive traffic cannot degrade service for legitimate consumers.
@@ -163,7 +170,7 @@ version keeps serving.
 - **FR-012**: The service MUST be run under container orchestration that keeps multiple instances running, restarts failed instances and replaces unhealthy ones automatically.
 - **FR-012a**: PROD and UAT MUST run spread across multiple availability zones of a single region and MUST continue serving consumers when any one zone is lost; Dev MAY run in a single zone.
 - **FR-013**: New versions MUST be rolled out without downtime and MUST be revertible to the previous version quickly.
-- **FR-014**: PROD (and UAT, which matches it) MUST be designed for up to 50 consumers and 100 requests per second in total, with each consumer limited to 10 requests per second; requests above a consumer's limit MUST be rejected with a clear rate-limit response while other consumers continue to be served.
+- **FR-014**: PROD (and UAT, which matches it) MUST be designed for up to 50 consumers and 100 requests per second in total, with each consumer limited to 2 requests per second (so that the total across 50 consumers never exceeds the design total); requests above a consumer's limit MUST be rejected with a clear rate-limit response while other consumers continue to be served.
 - **FR-014a**: The service MUST be able to scale its capacity with demand within defined limits per environment.
 - **FR-015**: The service MUST emit structured, timestamped logs of requests and security-relevant events, excluding secrets and personal data.
 
@@ -216,4 +223,5 @@ version keeps serving.
 - A managed secret store and an artifact repository are available in the target cloud account.
 - The availability, performance and rollback targets in the success criteria apply to PROD unless noted, with UAT and Dev held to the same security criteria.
 - A public DNS name and TLS certificate are needed for PROD; Dev and UAT use private names and certificates, reached via the private network connection. Ownership of the names is confirmed during planning.
+- A managed email-sending service and a verified sender address are available in the target cloud account for registration emails; this is the service's only external dependency.
 - A private network connection (VPN) and the people or systems allowed to use it are provided for Dev and UAT access.
